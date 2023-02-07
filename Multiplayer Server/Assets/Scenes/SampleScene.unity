@@ -226,7 +226,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 953614365}
-  - component: {fileID: 953614364}
+  - component: {fileID: 953614366}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -234,21 +234,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &953614364
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 953614363}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0564ee1452f31141841cfee6fccd84b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _port: 42069
-  _maxClients: 20
-  playerPrefab: {fileID: 3697134620619299258, guid: 193e278323d529d4bb361a04e932321d, type: 3}
 --- !u!4 &953614365
 Transform:
   m_ObjectHideFlags: 0
@@ -264,6 +249,23 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &953614366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953614363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f080ceec91e06c42a6a0a8714ff102e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  port: 7777
+  maxClients: 10
+  tickRate: 60
+  currentTick: 0
+  playerPrefab: {fileID: 2077023814949045138, guid: 6d52de2d8c3e50a478120f2679836068, type: 3}
 --- !u!1 &957642763
 GameObject:
   m_ObjectHideFlags: 0

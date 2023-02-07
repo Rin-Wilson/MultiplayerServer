@@ -1,148 +1,61 @@
-using Riptide;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Riptide;
+using Riptide.Utils;
 
-
-[RequireComponent(typeof(CharacterController))]
 public class Player : MonoBehaviour
 {
-    public static Dictionary<ushort, Player> List { get; private set; } = new Dictionary<ushort, Player>();
+    public static Dictionary<ushort, Player> m_Players = new Dictionary<ushort, Player>();
+    public static float RunSpeed = 6;
+    public static float WalkSpeed = 4;
 
-    public ushort Id { get; private set; }
-    public string Username { get; private set; }
+    public Vector2 moveInput;
+    [SerializeField] private Transform cameraProxy;
 
-    [SerializeField] private CharacterController controller;
-    [SerializeField] private float gravity;
-    [SerializeField] private float walkSpeed;
-    [SerializeField] private float runSpeed;
-    [SerializeField] private float jumpSpeed;
-    private bool grounded;
+    private CharacterController characterController;
 
-    private bool[] inputs;
-
-    private float _verticalVelocity;
-
-    private void OnValidate()
+    void Start()
     {
-        if (controller == null) 
-            controller = GetComponent<CharacterController>();
+        characterController = GetComponent<CharacterController>();
     }
 
-    private void Start()
+    public void Move()
     {
-        inputs = new bool[6];
-        gravity = -0.01f;
-        walkSpeed *= Time.fixedDeltaTime;
-        runSpeed *= Time.fixedDeltaTime;
-        jumpSpeed = 0.2f;
-    }
+        
 
-    private void FixedUpdate()
-    {
-        Vector2 inputDirection = Vector2.zero;
-        if (inputs[0]) inputDirection.y += 1;
-        if (inputs[1]) inputDirection.y -= 1;
+        Vector3 moveDir = new Vector3(moveInput.x, 0.0f, moveInput.y);
 
-        if (inputs[2]) inputDirection.x -= 1;
-        if (inputs[3]) inputDirection.x += 1;
+        moveDir = Vector3.ClampMagnitude(moveDir, 1);
 
-        Move(inputDirection);
-    }
-
-    private void Move(Vector2 inputDirection)
-    {
-        Vector3 moveDirection = transform.right * inputDirection.x + transform.forward * inputDirection.y;
-        moveDirection *= inputs[5] ? runSpeed : walkSpeed;
-
-        if (Grounded())
+        if (characterController == null)
         {
-            _verticalVelocity = 0f;
-            if (inputs[4])
-                _verticalVelocity = jumpSpeed;
+            Debug.Log("Character controller is null");
+            characterController = GetComponent<CharacterController>();
         }
         else
-            _verticalVelocity += gravity;
-
-        moveDirection.y = _verticalVelocity;
-        controller.Move(moveDirection);
-        if (transform.position.y < -10)
         {
-            transform.position = new Vector3(0f, 1f, 0f);
+            characterController.Move(transform.TransformDirection(NetworkManager.Instance.tickInterval * WalkSpeed * moveDir));
         }
-        SendMovement();
     }
 
-    private bool Grounded()
+    public static void MoveAll()
     {
-        int layerMask = 1 << 8;
-        layerMask = ~layerMask;
-        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.down), out _, 0.0001f, layerMask))
+        foreach (KeyValuePair<ushort, Player> p in m_Players)
         {
-            return true;
+            p.Value.Move();
         }
-        return false;
     }
 
-    public void SetDirection(Vector3 forward)
+    [MessageHandler((ushort)ClientToServerId.moveInput)]
+    private static void HandleMoveInput(ushort id, Message message)
     {
-        forward.y = 0f;
-        transform.forward = forward;
+        m_Players[id].moveInput = Vector2.ClampMagnitude(message.GetVector2(), 1);
     }
+}
 
-    private void SendMovement()
-    {
-        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.PlayerMovement);
-        message.AddUShort(Id);
-        message.AddVector3(transform.position);
-        message.AddVector3(transform.forward);
-        NetworkManager.Singleton.server.SendToAll(message);
-    }
-
-    public static void Spawn(ushort id, string username)
-    {
-        Player player = Instantiate(NetworkManager.Singleton.PlayerPrefab, new Vector3(), Quaternion.identity).GetComponent<Player>();
-        player.name = username;
-        player.Id = id;
-        player.Username = username;
-        player.SendSpawn();
-        List.Add(player.Id, player);
-    }
-
-    public void SendSpawn(ushort toClient)
-    {
-        NetworkManager.Singleton.server.Send(GetSpawnData(Message.Create(MessageSendMode.Reliable, ServerToClientId.SpawnPlayer)), toClient);
-    }
-    
-    public void SendSpawn()
-    {
-        NetworkManager.Singleton.server.SendToAll(GetSpawnData(Message.Create(MessageSendMode.Reliable, ServerToClientId.SpawnPlayer)));
-    }
-
-    private Message GetSpawnData(Message message)
-    {
-        message.AddUShort(Id);
-        message.AddString(Username);
-        message.AddVector3(transform.position);
-        return message;
-    }
-
-    private void OnDestroy()
-    {
-        List.Remove(Id);
-    }
-
-    [MessageHandler((ushort)ClientToServerId.PlayerInput)]
-    private static void PlayerInput(ushort fromClientId, Message message)
-    {
-        Player player = List[fromClientId];
-        message.GetBools(6, player.inputs);
-        player.SetDirection(message.GetVector3());
-    }
-
-    [MessageHandler((ushort)ClientToServerId.PlayerName)]
-    private static void PlayerName(ushort fromClientId, Message message)
-    {
-        Spawn(fromClientId, message.GetString());
-    }
+public struct PlayerInput
+{
+    public Vector2 move;
+    public Vector3 camera;
 }
